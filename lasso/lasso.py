@@ -1,38 +1,14 @@
 import numpy as np
-import netket as nk
-import scipy as spy
-
-import GPSKet
-
-from GPSKet.models import qGPS
-
 import jax.numpy as jnp
-
-from GPSKet.supervised.supervised_qgps import QGPSLogSpaceFit
-from GPSKet.nn.initializers import normal
-
-import jax
-
-
-import optax
-
-import GPSKet.operator.hamiltonian.J1J2 as j1j2
-
-import sklearn
-from sklearn.linear_model import LassoCV
-from sklearn.linear_model import Lasso
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import Ridge
-from sklearn.linear_model import RidgeCV
-
+import netket as nk
 import matplotlib.pyplot as plt
 
-from functools import partial
-from random import randint
-from random import sample
-from quspin.basis import spin_basis_general  # spin basis constructor
-from quspin.operators import hamiltonian # Hamiltonians and operators
-#from Chunk_Calling_qGPS import chunk_qGPS_call, apply_qGPS, final_wavefunction
+from GPSKet.models import qGPS
+from GPSKet.supervised.supervised_qgps import QGPSLogSpaceFit
+from GPSKet.nn.initializers import normal
+from GPSKet.operator.hamiltonian import J1J2 as j1j2
+
+from sklearn.linear_model import Lasso
 
 
 #TODO Figure out why original transformation from fitted parameters to wavefunction amplitudes (using the vs_R and vs_I objects) doesnt work
@@ -148,7 +124,7 @@ def rescale_parameters(learning_obj, rescalings, site):
     return learning_pred
 
 
-def lasso_wf_optimization(vs_R, vs_I, training_data, training_data_configs, iterations, regularization_penalty, scaling):
+def lasso_wf_optimisation(vs_R, vs_I, training_data, training_data_configs, iterations, regularization_penalty, scaling):
     """
     #TODO Finish documentation
 
