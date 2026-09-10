@@ -6,15 +6,37 @@ from lasso import lasso_wf_optimisation, system_setup, apply_model
 from sampling import basis_measurement_sampling as wf_sample
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
+import os
 
-# System setup
+# System and test setup
 
-Lx = 6
-Ly = 2
+test_ind = 4
+
+Lx = 4
+Ly = 4
+M=50
+training_fraction = 0.1
+iters = 50
+alpha = 5*10**(-9)
+scaling = True
 
 ha = J1J2.get_J1_J2_Hamiltonian(Lx=Lx, Ly = Ly, J2=0, sign_rule=[True,False], on_the_fly_en=False)
 g = nk.graph.Grid([Lx,Ly], pbc = True)
-vs_r,vs_i = system_setup(hilbert = ha.hilbert, graph = g, M=20, seed = 1, smp_seed = 1)
+vs_r,vs_i = system_setup(hilbert = ha.hilbert, graph = g, M=M, seed = 1, smp_seed = 1)
+
+path = 'Test'+str(test_ind)
+if not os.path.exists(path):
+    os.makedirs(path)
+
+with open(path+'/SetupTest'+str(test_ind),'w') as f:
+    f.write("Lx = "+str(Lx)+"\n")
+    f.write("Ly = "+str(Ly)+"\n")
+    f.write("M = "+str(M)+"\n")
+    f.write("training_fraction = "+str(training_fraction)+", ("+str(int(training_fraction*ha.hilbert.n_states))+" data points)""\n")
+    f.write("Iters = "+str(iters)+"\n")
+    f.write("Alpha = "+str(alpha)+"\n")
+    f.write("Scaling = "+str(scaling)+"\n")
+
 
 # Data generation:
 
@@ -34,8 +56,6 @@ print("configs generated")
 
 # Sampling training data
 
-training_fraction = 0.5
-
 indices, _ = wf_sample(amps, d*training_fraction,True)
 
 training_data = jnp.array([log_amps[i] for i in indices])
@@ -46,7 +66,7 @@ print("training data sampled")
 
 # Supervised learning
 
-pred_r, pred_i, phase_shift = lasso_wf_optimisation(vs_r,vs_i,training_data,training_labels,50,5*10**-7,True)
+pred_r, pred_i, phase_shift = lasso_wf_optimisation(vs_r,vs_i,training_data,training_labels,iters,alpha,scaling)
 
 print("learning finished")
 
@@ -80,22 +100,25 @@ norm_training_data_fit = training_data_fit/jnp.linalg.norm(training_data_fit)
 norm_full_fir = full_data_fit/jnp.linalg.norm(full_data_fit)
 
 # Plotting and print overlaps
-
-print("Training Data Overlap:", overlap(norm_training_data,norm_training_data_fit))
+o1=overlap(norm_training_data,norm_training_data_fit)
+print("Training Data Overlap:", o1)
 
 plt.plot([i for i in range(len(training_data_amps))],norm_training_data, color = 'r', label = 'data')
 plt.plot([i for i in range(len(training_data_amps))],norm_training_data_fit, color = 'b', label = 'fit')
+plt.title("Overlap = "+str(o1))
 plt.legend()
-plt.savefig('6x2HalfDataTest')
+plt.savefig('Test'+str(test_ind)+'/DataTest'+str(test_ind))
 
 plt.clf()
 
-print("Full Data Overlap:", overlap(amps,full_data_fit))
+o2=overlap(amps,full_data_fit)
+print("Full Data Overlap:", o2)
 
 plt.plot([i for i in range(d)],amps, color = 'r', label = 'data')
 plt.plot([i for i in range(d)],full_data_fit, color = 'b', label = 'fit')
+plt.title("Overlap = "+str(o2))
 plt.legend()
-plt.savefig('6x2HalfDataTestFull')
+plt.savefig('Test'+str(test_ind)+'/DataTestFull'+str(test_ind))
 
 plt.clf()
 
