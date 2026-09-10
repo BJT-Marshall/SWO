@@ -11,9 +11,6 @@ from GPSKet.operator.hamiltonian import J1J2 as j1j2
 from sklearn.linear_model import Lasso
 
 
-#TODO Figure out why original transformation from fitted parameters to wavefunction amplitudes (using the vs_R and vs_I objects) doesnt work
-
-
 def system_setup(hilbert, graph, M, seed = None, smp_seed = None):
     """
     Produces variational quantum state objects (:python:`netket.vqs.MCState`) initialised to fit states of an inputted hilbert space
@@ -43,11 +40,11 @@ def system_setup(hilbert, graph, M, seed = None, smp_seed = None):
     model_R = qGPS(hilbert, M[0], init_fun=normal(1.0e-3), dtype=float)
     model_I = qGPS(hilbert, M[1], init_fun=normal(1.0e-3), dtype=float)
 
-    sa_R = nk.sampler.MetropolisExchange(hilbert, graph=graph, n_chains_per_rank = 50)
-    sa_I = nk.sampler.MetropolisExchange(hilbert, graph=graph, n_chains_per_rank = 50)
+    sa_R = nk.sampler.MetropolisExchange(hilbert, graph=graph)
+    sa_I = nk.sampler.MetropolisExchange(hilbert, graph=graph)
 
-    vs_R = nk.vqs.MCState(sa_R, model_R, seed=seed, sampler_seed=smp_seed)
-    vs_I = nk.vqs.MCState(sa_I, model_I, seed=seed, sampler_seed=smp_seed)
+    vs_R = nk.vqs.MCState(sa_R, model_R, seed=seed, sampler_seed=smp_seed) #apply_fun=model_R.apply) 
+    vs_I = nk.vqs.MCState(sa_I, model_I, seed=seed, sampler_seed=smp_seed) #apply_fun=model_I.apply)
 
     return vs_R, vs_I
 
@@ -164,6 +161,9 @@ def lasso_wf_optimisation(vs_R, vs_I, training_data, training_data_configs, iter
 
     lasso_model_R = Lasso(alpha = regularization_penalty[0], fit_intercept=False, warm_start=True)
     lasso_model_I = Lasso(alpha = regularization_penalty[1], fit_intercept=False, warm_start=True)
+
+    #Creating a modified copy of the config representations for use in the .set_kernel_mat() method of learning objects
+    confs = jnp.array(vs_R.model.hilbert.states_to_local_indices(training_data_configs))
     
     if isinstance(iterations,int):
         iterations = [iterations, iterations]
@@ -179,7 +179,7 @@ def lasso_wf_optimisation(vs_R, vs_I, training_data, training_data_configs, iter
     #Fitting loop for real training data components
     for i in range(iterations[0]):
         if scaling:
-            if i != 0:
+            if i != 0: 
                 log_estimate = vs_R._apply_fun({"params": {"epsilon": prediction_model_R.epsilon}}, training_data_configs)
             else:
                 log_estimate = vs_R._apply_fun({"params": {"epsilon": learning_R.epsilon}}, training_data_configs)
@@ -194,16 +194,48 @@ def lasso_wf_optimisation(vs_R, vs_I, training_data, training_data_configs, iter
 
             #scaling: target data and feature vector both individually scaled by |psi|_predicted at each iteration
             if scaling == True:
-                K_R=learning_R.set_kernel_mat(update_K=True, confs=training_data_configs) #sampled amplitudes converted to configs_list as demanded by the 'set_kernel_mat' method
+                K_R=learning_R.set_kernel_mat(update_K=True, confs=confs) #sampled amplitudes converted to configs_list as demanded by the 'set_kernel_mat' method
                 feature_vector_R = np.array(scalings)*K_R
             else:
-                K_R=learning_R.set_kernel_mat(update_K=True, confs=training_data_configs) #sampled amplitudes converted to configs_list as demanded by the 'set_kernel_mat' method
+                K_R=learning_R.set_kernel_mat(update_K=True, confs=confs) #sampled amplitudes converted to configs_list as demanded by the 'set_kernel_mat' method
                 feature_vector_R = K_R
 
             #Fitting the model (Computes the optimal weights 'w' that fits the feature vector to the fit data)
             fit_R = lasso_model_R.fit(X=feature_vector_R, y=fit_data_R).coef_
+
+            #Temp debug to calibrate feature scale, data scale and regularisation to reduce duality gap and increase regularisation.
+            debug = False
+            if debug:
+                print("Dual Gap:")
+                print(lasso_model_R.dual_gap_)
+                print("Scaled Dual Gap in WARNING:")
+                print(len(fit_data_R)*lasso_model_R.dual_gap_)
+                print("Tolerance Scaling Factor:")
+                print(jnp.linalg.norm(fit_data_R)**2)
+                print("Scaled Tolerance in WARNING:")
+                print(0.0001*jnp.linalg.norm(fit_data_R)**2)
+                print("Feature Vector")
+                print(feature_vector_R)
+                print("Feature Vector Average")
+                print(np.average(feature_vector_R))
+                print("Fit Data")
+                print(fit_data_R)
+                print("Fit Data Average")
+                print(np.average(fit_data_R))
+                print("Fitted Weights")
+                print(fit_R)
+                print("Fitted Weights Average")
+                print(np.average(fit_R))
+            
             optimal_weights_R, rescalings_R = rescale_weights(fit_R)
             learning_R.weights = optimal_weights_R
+
+            if debug:
+                print("Rescaled Weights")
+                print(optimal_weights_R)
+                print("Average Rescaleds Weights")
+                print(np.average(optimal_weights_R))
+                input()
            
             #Update the weights and the epsilon tensor held in the learning object.
             learning_R.valid_kern = abs(np.diag(K_R.conj().T.dot(K_R))) > learning_R.kern_cutoff
@@ -234,10 +266,10 @@ def lasso_wf_optimisation(vs_R, vs_I, training_data, training_data_configs, iter
 
             #scaling: target data and feature vector both individually scaled by |psi|_predicted at each iteration
             if scaling:
-                K_I=learning_I.set_kernel_mat(update_K=True, confs=training_data_configs) #sampled amplitudes converted to configs_list as demanded by the 'set_kernel_mat' method 
+                K_I=learning_I.set_kernel_mat(update_K=True, confs=confs) #sampled amplitudes converted to configs_list as demanded by the 'set_kernel_mat' method 
                 feature_vector_I = jnp.array(scalings)*K_I 
             else:
-                K_I=learning_I.set_kernel_mat(update_K=True, confs=training_data_configs) #sampled amplitudes converted to configs_list as demanded by the 'set_kernel_mat' method
+                K_I=learning_I.set_kernel_mat(update_K=True, confs=confs) #sampled amplitudes converted to configs_list as demanded by the 'set_kernel_mat' method
                 feature_vector_I = K_I
                 fit_data_I = fit_data_I_pre
 
@@ -252,13 +284,13 @@ def lasso_wf_optimisation(vs_R, vs_I, training_data, training_data_configs, iter
 
             prediction_model_I = rescale_parameters(learning_I, rescalings_I, site)
 
-    return prediction_model_R, prediction_model_I, phase_shift
+    return prediction_model_R.epsilon, prediction_model_I.epsilon, phase_shift
 
 
 def apply_model(vs_R, vs_I, params_R, params_I, phase_shift, configs):
     """
     Generates the set of predicted, normalised, wavefunction amplitudes corresponding to an inputted set of 
-    local hilbert space configurations.
+    states.
 
     :param vs_R: Variational quantum state as returned by :python:`lasso_wf_optimization` containing fitted parameters for the real
     component of the training data.
@@ -272,18 +304,14 @@ def apply_model(vs_R, vs_I, params_R, params_I, phase_shift, configs):
     :type params_I: numpy.ndarray
     :param phase_shift: The phase shift used to adjust the imaginary component of the training data as returned by :python:`lasso_wf_optimization`.
     :type phase_shift: float
-    :param configs: A list of local hilbert space configurations corresponding to the wavefunction amplitudes to be generated.
+    :param configs: A list of states corresponding to the wavefunction amplitudes to be generated.
     :type configs: list
     :returns predicted_amps: The generated, normalised, wavefunction amplitudes corresponding to the inputted local hilbert space configurations.
     :rtype numpy.array:
     """
 
-    #TODO Figure out why this implementation generates constant wavefunctions regardless of fitted parameters
-    #prediction_R = vs_R._apply_fun({"params": {"epsilon": params_R}}, configs)
-    #prediction_I = vs_I._apply_fun({"params": {"epsilon": params_I}}, configs)
-
-    prediction_R = jnp.array(apply_qGPS_manual(params_R, configs))
-    prediction_I = jnp.array(apply_qGPS_manual(params_I, configs))
+    prediction_R = vs_R._apply_fun({"params": {"epsilon": params_R}}, configs)
+    prediction_I = vs_I._apply_fun({"params": {"epsilon": params_I}}, configs)
     prediction_I += phase_shift
 
     predicted_log_amps = jnp.array([prediction_R[i]+1j*prediction_I[i] for i in range(len(prediction_R))])
