@@ -23,7 +23,8 @@ def basis_measurement_sampling(wf, num_samples, unique = False):
     s_dict = {}
     wf = list(wf)
     for x in wf:
-        dist.append(np.conjugate(x)*x)
+        dist.append(np.real(np.conjugate(x)*x))
+        
 
     samples = list(np.random.choice(a=np.arange(0,len(wf)), size=int(num_samples), p=dist, replace = not unique))
     for s in range(len(samples)):
