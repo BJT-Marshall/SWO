@@ -39,13 +39,18 @@ def epsilon_heatmap(formatted_epsilon, name):
 
     m, d, l = formatted_epsilon.shape
 
-    fig, axes = plt.subplots(1, m, figsize=(2*m, 2))
+    fig, axes = plt.subplots(1, m, figsize=(4*m, 4))
     for i in range(m):
         sns.heatmap(
             formatted_epsilon[i],
             ax=axes[i],
             cmap="viridis",
-            cbar=(i == m-1) # show colorbar only once
+            cbar=(i == m-1), # show colorbar only once
+            annot = True,
+            fmt = ".2f",
+            annot_kws={"fontsize": 6},
+            vmin = np.min(formatted_epsilon),
+            vmax = np.max(formatted_epsilon)
             )
         axes[i].set_title("M = "+str(i)+" Heatmap")
     plt.tight_layout()
