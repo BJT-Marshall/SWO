@@ -90,7 +90,7 @@ def trailing_number(s):
 
     return int(match.group(1)) if match else None
 
-def compute_P2(qGPS_test_folder,log_amps_J_file = "jastrow/data/JastrowStateFull", params_J_file = "jastrow/data/JastrowParams", print_steps = False):
+def compute_P2(qGPS_test_folder,log_amps_J_file = "jastrow/data/dataset2/JastrowStateFull", params_J_file = "jastrow/data/dataset2/JastrowParams", print_steps = False):
     """Computes the P2 metric for the states produced from both the Jastrow model and qGPS model. Used to compare how "pair-wise" the state
     is that the qGPS model produces."""
 
@@ -198,10 +198,13 @@ def compute_P2(qGPS_test_folder,log_amps_J_file = "jastrow/data/JastrowStateFull
 
 
 
-with open("P2ForTests","w") as f:
-    for i in range(1,39):
-        p_j,p_q = compute_P2("jastrow/Tests/Test"+str(i))
-        f.write("Test "+str(i)+" P2 Value: "+str(p_q)+"\n")
-    f.close()
+p_j,p_q = compute_P2("jastrow/Tests/Test46")
+
+
+#with open("P2ForTests","w") as f:
+    #for i in range(1,39):
+        #p_j,p_q = compute_P2("jastrow/Tests/Test"+str(i))
+        #f.write("Test "+str(i)+" P2 Value: "+str(p_q)+"\n")
+    #f.close()
 
 

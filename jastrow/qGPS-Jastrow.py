@@ -22,16 +22,22 @@ import os
 
 # System and test setup
 
-test_ind = 40
+test_ind = 46 #REMEMBER TO GIVE A NEW INDEX TO NOT OVERWRITE DATA
+dataset_ind = 1 #folder index for jastrow data to fetch
 
-Lx = 4
-Ly = 2
-M=28
+M=9
 training_fraction = 1
 iters = 500
-alpha = 5*10**(-7)
+alpha = 10**(-9)
 scaling = True
 heatmaps = True
+
+with open("jastrow/data/dataset"+str(dataset_ind)+"/SystemData","r") as f:
+    Lx = int(f.readline().strip().split()[-1])
+    Ly = int(f.readline().strip().split()[-1]) 
+    J2 = float(f.readline().strip().split()[-1])
+    
+
 
 ha = J1J2.get_J1_J2_Hamiltonian(Lx=Lx, Ly = Ly, J2=0, sign_rule=[True,False], on_the_fly_en=False)
 g = nk.graph.Grid([Lx,Ly], pbc = True)
@@ -54,7 +60,7 @@ with open(path+'/SetupTest'+str(test_ind),'w') as f:
 
 # Data generation:
 
-with open ("jastrow/data/JastrowState", "r") as f:
+with open ("jastrow/data/dataset"+str(dataset_ind)+"/JastrowState", "r") as f:
     amps = []
     lines = f.readlines()[1:]
     for line in lines:
