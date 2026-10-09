@@ -22,14 +22,14 @@ import os
 
 # System and test setup
 
-test_ind = 10
+test_ind = 40
 
 Lx = 4
 Ly = 2
 M=28
 training_fraction = 1
-iters = 100
-alpha = 10**(-6)
+iters = 500
+alpha = 5*10**(-7)
 scaling = True
 heatmaps = True
 
@@ -37,7 +37,7 @@ ha = J1J2.get_J1_J2_Hamiltonian(Lx=Lx, Ly = Ly, J2=0, sign_rule=[True,False], on
 g = nk.graph.Grid([Lx,Ly], pbc = True)
 vs_r,vs_i = system_setup(hilbert = ha.hilbert, graph = g, M=M, seed = 1, smp_seed = 1)
 
-path = 'jastrow/Test'+str(test_ind)
+path = 'jastrow/Tests/Test'+str(test_ind)
 if not os.path.exists(path):
     os.makedirs(path)
 
@@ -49,6 +49,7 @@ with open(path+'/SetupTest'+str(test_ind),'w') as f:
     f.write("Iters = "+str(iters)+"\n")
     f.write("Alpha = "+str(alpha)+"\n")
     f.write("Scaling = "+str(scaling)+"\n")
+    f.close()
 
 
 # Data generation:
@@ -59,6 +60,7 @@ with open ("jastrow/data/JastrowState", "r") as f:
     for line in lines:
         amps.append(complex(line.strip()))
     amps = jnp.array(amps)
+    f.close()
 
 d = len(amps)
 
@@ -90,7 +92,7 @@ print("learning finished")
 
 
 def write_epsilon_to_file(epsilon, test_ind, name):
-    with open('jastrow/Test'+str(test_ind)+'/Epsilon_'+str(name),'w') as f:
+    with open('jastrow/Tests/Test'+str(test_ind)+'/Epsilon_'+str(name),'w') as f:
         f.write(str(epsilon.shape[0])+" "+str(epsilon.shape[1])+" "+str(epsilon.shape[2])+"\n")
         epsilon = epsilon.flatten()
         for i in range(len(epsilon)):
@@ -104,8 +106,8 @@ write_epsilon_to_file(pred_i, test_ind, "pred_i")
 print("epsilons written to file")
 
 if heatmaps:
-    heatmap_from_array(pred_r, 'jastrow/Test'+str(test_ind)+'/Epsilon_pred_r_heatmap.png')
-    heatmap_from_array(pred_i, 'jastrow/Test'+str(test_ind)+'/Epsilon_pred_i_heatmap.png')
+    heatmap_from_array(pred_r, 'jastrow/Tests/Test'+str(test_ind)+'/Epsilon_pred_r_heatmap.png')
+    heatmap_from_array(pred_i, 'jastrow/Tests/Test'+str(test_ind)+'/Epsilon_pred_i_heatmap.png')
     print("heatmaps generated")
 
 # Generate predicted log amplitudes for the set of training data and the full wavefunction
@@ -145,7 +147,7 @@ plt.plot([i for i in range(len(training_data_amps))],norm_training_data, color =
 plt.plot([i for i in range(len(training_data_amps))],norm_training_data_fit, color = 'b', label = 'fit')
 plt.title("Overlap = "+str(o1))
 plt.legend()
-plt.savefig('jastrow/Test'+str(test_ind)+'/DataTest'+str(test_ind))
+plt.savefig('jastrow/Tests/Test'+str(test_ind)+'/DataTest'+str(test_ind))
 
 plt.clf()
 
@@ -156,6 +158,11 @@ plt.plot([i for i in range(d)],amps, color = 'r', label = 'data')
 plt.plot([i for i in range(d)],full_data_fit, color = 'b', label = 'fit')
 plt.title("Overlap = "+str(o2))
 plt.legend()
-plt.savefig('jastrow/Test'+str(test_ind)+'/DataTestFull'+str(test_ind))
+plt.savefig('jastrow/Tests/Test'+str(test_ind)+'/DataTestFull'+str(test_ind))
 
 plt.clf()
+
+with open(path+'/SetupTest'+str(test_ind),'a') as f:
+    f.write("Training Data Overlap: " +str(o1)+"\n")
+    f.write("Full Data Overlap: " +str(o2)+"\n")
+    f.close()
