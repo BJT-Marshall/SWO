@@ -22,25 +22,34 @@ import os
 
 # System and test setup
 
-test_ind = 46 #REMEMBER TO GIVE A NEW INDEX TO NOT OVERWRITE DATA
-dataset_ind = 1 #folder index for jastrow data to fetch
+test_ind = 47 #REMEMBER TO GIVE A NEW INDEX TO NOT OVERWRITE DATA
+dataset_ind = 2 #folder index for jastrow data to fetch
 
-M=9
+M=5
 training_fraction = 1
-iters = 500
+iters = 100
 alpha = 10**(-9)
 scaling = True
 heatmaps = True
 
 with open("jastrow/data/dataset"+str(dataset_ind)+"/SystemData","r") as f:
     Lx = int(f.readline().strip().split()[-1])
-    Ly = int(f.readline().strip().split()[-1]) 
+    Ly = int(f.readline().strip().split()[-1])
+    if Lx == 1:
+        Lx = None
+        g = nk.graph.Chain(Ly, pbc = True)
+    elif Ly == 1:
+        Ly = None
+        g = nk.graph.Chain(Lx, pbc = True)
+    else:
+        g = nk.graph.Grid([Lx,Ly], pbc = True)
     J2 = float(f.readline().strip().split()[-1])
+    f.close()
     
 
 
 ha = J1J2.get_J1_J2_Hamiltonian(Lx=Lx, Ly = Ly, J2=0, sign_rule=[True,False], on_the_fly_en=False)
-g = nk.graph.Grid([Lx,Ly], pbc = True)
+
 vs_r,vs_i = system_setup(hilbert = ha.hilbert, graph = g, M=M, seed = 1, smp_seed = 1)
 
 path = 'jastrow/Tests/Test'+str(test_ind)
@@ -55,6 +64,7 @@ with open(path+'/SetupTest'+str(test_ind),'w') as f:
     f.write("Iters = "+str(iters)+"\n")
     f.write("Alpha = "+str(alpha)+"\n")
     f.write("Scaling = "+str(scaling)+"\n")
+    f.write("Jastrow Dataset = "+str(dataset_ind)+"\n")
     f.close()
 
 
