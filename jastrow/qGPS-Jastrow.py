@@ -37,12 +37,18 @@ with open("jastrow/data/dataset"+str(dataset_ind)+"/SystemData","r") as f:
     Ly = int(f.readline().strip().split()[-1])
     if Lx == 1:
         Lx = None
+        Lx_ = 1
+        Ly_ = Ly
         g = nk.graph.Chain(Ly, pbc = True)
     elif Ly == 1:
         Ly = None
+        Lx_ = Lx
+        Ly_ = 1
         g = nk.graph.Chain(Lx, pbc = True)
     else:
         g = nk.graph.Grid([Lx,Ly], pbc = True)
+        Lx_ = Lx
+        Ly_ = Ly
     J2 = float(f.readline().strip().split()[-1])
     f.close()
     
@@ -58,7 +64,7 @@ if not os.path.exists(path):
 
 with open(path+'/SetupTest'+str(test_ind),'w') as f:
     f.write("Lx = "+str(Lx)+"\n")
-    f.write("Ly = "+str(Ly)+"\n")
+    f.write("Ly = "+str(Ly_)+"\n")
     f.write("M = "+str(M)+"\n")
     f.write("training_fraction = "+str(training_fraction)+", ("+str(int(training_fraction*ha.hilbert.n_states))+" data points)""\n")
     f.write("Iters = "+str(iters)+"\n")

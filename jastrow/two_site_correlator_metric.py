@@ -106,8 +106,17 @@ def compute_P2(qGPS_test_folder,log_amps_J_file = "jastrow/data/dataset2/Jastrow
         f.close()
 
     L = Lx*Ly
+    
+    if Lx == 1:
+        Lx = None
+        g = nk.graph.Chain(Ly, pbc = True)
+    elif Ly ==1:
+        Ly = None
+        g = nk.graph.Chain(Lx, pbc = True)
+    else:
+        g = nk.graph.Grid([Lx,Ly], pbc = True)
+
     ha = J1J2.get_J1_J2_Hamiltonian(Lx=Lx, Ly = Ly, J2=0, sign_rule=[True,False], on_the_fly_en=False)
-    g = nk.graph.Grid([Lx,Ly], pbc = True)
     full_configs = [[(n >> i) & 1 for i in range(7, -1, -1)] for n in range(2**L)]
 
 
@@ -198,7 +207,7 @@ def compute_P2(qGPS_test_folder,log_amps_J_file = "jastrow/data/dataset2/Jastrow
 
 
 
-p_j,p_q = compute_P2("jastrow/Tests/Test46")
+p_j,p_q = compute_P2("jastrow/Tests/Test47")
 
 
 #with open("P2ForTests","w") as f:
